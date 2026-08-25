@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 public record DeliveryResponse(
 
         Long id,
+        Long customerId,
         String customerName,
         String customerPhone,
         String pickupAddress,

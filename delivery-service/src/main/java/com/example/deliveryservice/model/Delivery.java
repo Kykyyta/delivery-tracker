@@ -1,6 +1,5 @@
 package com.example.deliveryservice.model;
 
-
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,6 +17,9 @@ public class Delivery {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "customer_id")
+    private Long customerId;
 
     @Column(name = "customer_name", nullable = false, length = 100)
     private String customerName;
@@ -38,6 +40,9 @@ public class Delivery {
     @Column(name = "courier_id")
     private Long courierId;
 
+    @Column(name = "courier_user_id")
+    private Long courierUserId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -49,6 +54,7 @@ public class Delivery {
         if (status == null) {
             status = DeliveryStatus.CREATED;
         }
+
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }

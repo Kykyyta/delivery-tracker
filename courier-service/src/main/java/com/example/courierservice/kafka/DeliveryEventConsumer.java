@@ -31,12 +31,19 @@ public class DeliveryEventConsumer {
 
             courierEventProducer.sendCourierAssigned(
                     event.deliveryId(),
-                    courier.id()
+                    courier.id(),
+                    courier.userId()
             );
         }
 
         if (event.eventType() == DeliveryEventType.DELIVERY_COMPLETED) {
             courierService.releaseCourier(event.deliveryId());
+        }
+
+        if (event.eventType() == DeliveryEventType.DELIVERY_CANCELLED) {
+            courierService.releaseCourierIfAssigned(
+                    event.deliveryId()
+            );
         }
     }
 }

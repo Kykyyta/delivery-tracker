@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 public record CourierResponse(
 
         Long id,
+        Long userId,
         String name,
         String phone,
         CourierStatus status,

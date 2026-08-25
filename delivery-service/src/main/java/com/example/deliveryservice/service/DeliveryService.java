@@ -9,10 +9,12 @@ import com.example.deliveryservice.mapper.DeliveryMapper;
 import com.example.deliveryservice.model.Delivery;
 import com.example.deliveryservice.model.DeliveryStatus;
 import com.example.deliveryservice.repository.DeliveryRepository;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class DeliveryService {
@@ -32,9 +34,13 @@ public class DeliveryService {
     }
 
     @Transactional
-    public DeliveryResponse createDelivery(DeliveryRequest request) {
-
+    public DeliveryResponse createDelivery(
+            DeliveryRequest request,
+            Long customerId
+    ) {
         Delivery delivery = deliveryMapper.toEntity(request);
+
+        delivery.setCustomerId(customerId);
 
         Delivery savedDelivery = deliveryRepository.save(delivery);
 
@@ -48,9 +54,28 @@ public class DeliveryService {
     @Transactional(readOnly = true)
     public List<DeliveryResponse> getAllDeliveries(
             DeliveryStatus status,
-            Long courierId
+            Long courierId,
+            Long currentUserId,
+            String role
     ) {
         List<Delivery> deliveries;
+
+        if ("CUSTOMER".equals(role)) {
+            if (status != null) {
+                deliveries = deliveryRepository.findByCustomerIdAndStatus(
+                        currentUserId,
+                        status
+                );
+            } else {
+                deliveries = deliveryRepository.findByCustomerId(
+                        currentUserId
+                );
+            }
+
+            return deliveries.stream()
+                    .map(deliveryMapper::toResponse)
+                    .toList();
+        }
 
         if (status != null && courierId != null) {
             deliveries = deliveryRepository.findByStatusAndCourierId(
@@ -71,15 +96,36 @@ public class DeliveryService {
     }
 
     @Transactional(readOnly = true)
-    public DeliveryResponse getDeliveryById(Long id) {
+    public DeliveryResponse getDeliveryById(
+            Long id,
+            Long currentUserId,
+            String role
+    ) {
         Delivery delivery = findDeliveryById(id);
+
+        checkCustomerAccess(
+                delivery,
+                currentUserId,
+                role
+        );
 
         return deliveryMapper.toResponse(delivery);
     }
 
     @Transactional
-    public DeliveryResponse updateDelivery(Long id, DeliveryRequest request) {
+    public DeliveryResponse updateDelivery(
+            Long id,
+            DeliveryRequest request,
+            Long currentUserId,
+            String role
+    ) {
         Delivery delivery = findDeliveryById(id);
+
+        checkCustomerAccess(
+                delivery,
+                currentUserId,
+                role
+        );
 
         deliveryMapper.updateEntity(delivery, request);
 
@@ -89,7 +135,11 @@ public class DeliveryService {
     }
 
     @Transactional
-    public DeliveryResponse assignCourier(Long id, Long courierId) {
+    public DeliveryResponse assignCourier(
+            Long id,
+            Long courierId,
+            Long courierUserId
+    ) {
         Delivery delivery = findDeliveryById(id);
 
         if (delivery.getStatus() != DeliveryStatus.CREATED) {
@@ -99,6 +149,7 @@ public class DeliveryService {
         }
 
         delivery.setCourierId(courierId);
+        delivery.setCourierUserId(courierUserId);
         delivery.setStatus(DeliveryStatus.COURIER_ASSIGNED);
 
         Delivery updatedDelivery = deliveryRepository.save(delivery);
@@ -107,8 +158,18 @@ public class DeliveryService {
     }
 
     @Transactional
-    public DeliveryResponse pickupDelivery(Long id) {
+    public DeliveryResponse pickupDelivery(
+            Long id,
+            Long currentUserId,
+            String role
+    ) {
         Delivery delivery = findDeliveryById(id);
+
+        checkCourierAccess(
+                delivery,
+                currentUserId,
+                role
+        );
 
         if (delivery.getStatus() != DeliveryStatus.COURIER_ASSIGNED) {
             throw new InvalidDeliveryStatusException(
@@ -128,8 +189,18 @@ public class DeliveryService {
     }
 
     @Transactional
-    public DeliveryResponse completeDelivery(Long id) {
+    public DeliveryResponse completeDelivery(
+            Long id,
+            Long currentUserId,
+            String role
+    ) {
         Delivery delivery = findDeliveryById(id);
+
+        checkCourierAccess(
+                delivery,
+                currentUserId,
+                role
+        );
 
         if (delivery.getStatus() != DeliveryStatus.PICKED_UP) {
             throw new InvalidDeliveryStatusException(
@@ -149,12 +220,21 @@ public class DeliveryService {
     }
 
     @Transactional
-    public DeliveryResponse cancelDelivery(Long id) {
+    public DeliveryResponse cancelDelivery(
+            Long id,
+            Long currentUserId,
+            String role
+    ) {
         Delivery delivery = findDeliveryById(id);
+
+        checkCustomerAccess(
+                delivery,
+                currentUserId,
+                role
+        );
 
         if (delivery.getStatus() != DeliveryStatus.CREATED
                 && delivery.getStatus() != DeliveryStatus.COURIER_ASSIGNED) {
-
             throw new InvalidDeliveryStatusException(
                     "Отменить можно только доставку со статусом CREATED или COURIER_ASSIGNED"
             );
@@ -162,7 +242,12 @@ public class DeliveryService {
 
         delivery.setStatus(DeliveryStatus.CANCELLED);
 
-        Delivery updatedDelivery = deliveryRepository.save(delivery);
+        Delivery updatedDelivery =
+                deliveryRepository.save(delivery);
+
+        deliveryEventProducer.sendDeliveryCancelled(
+                updatedDelivery.getId()
+        );
 
         return deliveryMapper.toResponse(updatedDelivery);
     }
@@ -176,7 +261,49 @@ public class DeliveryService {
 
     private Delivery findDeliveryById(Long id) {
         return deliveryRepository.findById(id)
-                .orElseThrow(() -> new DeliveryNotFoundException(id));
+                .orElseThrow(() ->
+                        new DeliveryNotFoundException(id)
+                );
     }
 
+    private void checkCustomerAccess(
+            Delivery delivery,
+            Long currentUserId,
+            String role
+    ) {
+        if (!"CUSTOMER".equals(role)) {
+            return;
+        }
+
+        if (!Objects.equals(
+                delivery.getCustomerId(),
+                currentUserId
+        )) {
+            throw new AccessDeniedException(
+                    "Нет доступа к этой доставке"
+            );
+        }
+    }
+
+    private void checkCourierAccess(
+            Delivery delivery,
+            Long currentUserId,
+            String role
+    ) {
+        if ("ADMIN".equals(role)) {
+            return;
+        }
+
+        if ("COURIER".equals(role)
+                && Objects.equals(
+                delivery.getCourierUserId(),
+                currentUserId
+        )) {
+            return;
+        }
+
+        throw new AccessDeniedException(
+                "Эта доставка не назначена текущему курьеру"
+        );
+    }
 }

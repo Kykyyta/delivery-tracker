@@ -21,10 +21,10 @@ public class CourierEventConsumer {
     public void handleCourierEvent(CourierEvent event) {
 
         if (event.eventType() == CourierEventType.COURIER_ASSIGNED) {
-
             deliveryService.assignCourier(
                     event.deliveryId(),
-                    event.courierId()
+                    event.courierId(),
+                    event.courierUserId()
             );
         }
     }

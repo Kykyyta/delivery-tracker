@@ -23,14 +23,15 @@ public class CourierEventProducer {
 
     public void sendCourierAssigned(
             Long deliveryId,
-            Long courierId
+            Long courierId,
+            Long courierUserId
     ) {
-
         CourierEvent event = new CourierEvent(
                 UUID.randomUUID(),
                 CourierEventType.COURIER_ASSIGNED,
                 deliveryId,
                 courierId,
+                courierUserId,
                 LocalDateTime.now()
         );
 

@@ -49,3 +49,6 @@ info:
     name: Notification Service
     description: Microservice for delivery notifications
     version: 1.0.0
+
+jwt:
+  secret: "${JWT_SECRET}"

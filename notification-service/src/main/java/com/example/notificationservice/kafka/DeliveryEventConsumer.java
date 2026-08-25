@@ -49,6 +49,15 @@ public class DeliveryEventConsumer {
                             "Доставка #" + event.deliveryId()
                                     + " успешно завершена"
                     );
+
+            case DELIVERY_CANCELLED ->
+                    notificationService.createNotification(
+                            event.eventId(),
+                            event.deliveryId(),
+                            NotificationType.DELIVERY_CANCELLED,
+                            "Доставка #" + event.deliveryId()
+                                    + " отменена"
+                    );
         }
     }
 }

@@ -9,6 +9,7 @@ public record CourierEvent(
         CourierEventType eventType,
         Long deliveryId,
         Long courierId,
+        Long courierUserId,
         LocalDateTime occurredAt
 
 ) {

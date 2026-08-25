@@ -29,6 +29,7 @@ public class DeliveryMapper {
     public DeliveryResponse toResponse(Delivery delivery) {
         return new DeliveryResponse(
                 delivery.getId(),
+                delivery.getCustomerId(),
                 delivery.getCustomerName(),
                 delivery.getCustomerPhone(),
                 delivery.getPickupAddress(),

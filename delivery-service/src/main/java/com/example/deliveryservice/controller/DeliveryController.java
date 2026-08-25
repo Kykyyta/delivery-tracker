@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -34,14 +36,18 @@ public class DeliveryController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public DeliveryResponse createDelivery(
-            @Valid @RequestBody DeliveryRequest request
+            @Valid @RequestBody DeliveryRequest request,
+            @AuthenticationPrincipal Jwt jwt
     ) {
-        return deliveryService.createDelivery(request);
+        return deliveryService.createDelivery(
+                request,
+                getUserId(jwt)
+        );
     }
 
     @Operation(
             summary = "Получить список доставок",
-            description = "Возвращает все доставки с возможностью фильтрации по статусу и ID курьера"
+            description = "Возвращает доставки с возможностью фильтрации"
     )
     @GetMapping
     public List<DeliveryResponse> getAllDeliveries(
@@ -49,9 +55,16 @@ public class DeliveryController {
             @RequestParam(required = false) DeliveryStatus status,
 
             @Parameter(description = "ID назначенного курьера")
-            @RequestParam(required = false) Long courierId
+            @RequestParam(required = false) Long courierId,
+
+            @AuthenticationPrincipal Jwt jwt
     ) {
-        return deliveryService.getAllDeliveries(status, courierId);
+        return deliveryService.getAllDeliveries(
+                status,
+                courierId,
+                getUserId(jwt),
+                getRole(jwt)
+        );
     }
 
     @Operation(
@@ -61,9 +74,15 @@ public class DeliveryController {
     @GetMapping("/{id}")
     public DeliveryResponse getDeliveryById(
             @Parameter(description = "ID доставки", required = true)
-            @PathVariable Long id
+            @PathVariable Long id,
+
+            @AuthenticationPrincipal Jwt jwt
     ) {
-        return deliveryService.getDeliveryById(id);
+        return deliveryService.getDeliveryById(
+                id,
+                getUserId(jwt),
+                getRole(jwt)
+        );
     }
 
     @Operation(
@@ -75,9 +94,16 @@ public class DeliveryController {
             @Parameter(description = "ID доставки", required = true)
             @PathVariable Long id,
 
-            @Valid @RequestBody DeliveryRequest request
+            @Valid @RequestBody DeliveryRequest request,
+
+            @AuthenticationPrincipal Jwt jwt
     ) {
-        return deliveryService.updateDelivery(id, request);
+        return deliveryService.updateDelivery(
+                id,
+                request,
+                getUserId(jwt),
+                getRole(jwt)
+        );
     }
 
     @Operation(
@@ -87,9 +113,15 @@ public class DeliveryController {
     @PatchMapping("/{id}/pickup")
     public DeliveryResponse pickupDelivery(
             @Parameter(description = "ID доставки", required = true)
-            @PathVariable Long id
+            @PathVariable Long id,
+
+            @AuthenticationPrincipal Jwt jwt
     ) {
-        return deliveryService.pickupDelivery(id);
+        return deliveryService.pickupDelivery(
+                id,
+                getUserId(jwt),
+                getRole(jwt)
+        );
     }
 
     @Operation(
@@ -99,9 +131,15 @@ public class DeliveryController {
     @PatchMapping("/{id}/complete")
     public DeliveryResponse completeDelivery(
             @Parameter(description = "ID доставки", required = true)
-            @PathVariable Long id
+            @PathVariable Long id,
+
+            @AuthenticationPrincipal Jwt jwt
     ) {
-        return deliveryService.completeDelivery(id);
+        return deliveryService.completeDelivery(
+                id,
+                getUserId(jwt),
+                getRole(jwt)
+        );
     }
 
     @Operation(
@@ -111,9 +149,15 @@ public class DeliveryController {
     @PatchMapping("/{id}/cancel")
     public DeliveryResponse cancelDelivery(
             @Parameter(description = "ID доставки", required = true)
-            @PathVariable Long id
+            @PathVariable Long id,
+
+            @AuthenticationPrincipal Jwt jwt
     ) {
-        return deliveryService.cancelDelivery(id);
+        return deliveryService.cancelDelivery(
+                id,
+                getUserId(jwt),
+                getRole(jwt)
+        );
     }
 
     @Operation(
@@ -127,5 +171,15 @@ public class DeliveryController {
             @PathVariable Long id
     ) {
         deliveryService.deleteDelivery(id);
+    }
+
+    private Long getUserId(Jwt jwt) {
+        Number userId = jwt.getClaim("userId");
+
+        return userId.longValue();
+    }
+
+    private String getRole(Jwt jwt) {
+        return jwt.getClaimAsString("role");
     }
 }

@@ -42,6 +42,13 @@ public class DeliveryEventProducer {
         );
     }
 
+    public void sendDeliveryCancelled(Long deliveryId) {
+        sendEvent(
+                DeliveryEventType.DELIVERY_CANCELLED,
+                deliveryId
+        );
+    }
+
     private void sendEvent(
             DeliveryEventType eventType,
             Long deliveryId

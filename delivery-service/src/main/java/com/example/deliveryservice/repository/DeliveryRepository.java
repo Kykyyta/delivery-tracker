@@ -16,4 +16,11 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
             DeliveryStatus status,
             Long courierId
     );
+
+    List<Delivery> findByCustomerId(Long customerId);
+
+    List<Delivery> findByCustomerIdAndStatus(
+            Long customerId,
+            DeliveryStatus status
+    );
 }
