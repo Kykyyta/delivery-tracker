@@ -24,7 +24,8 @@ public class CourierEventProducer {
     public void sendCourierAssigned(
             Long deliveryId,
             Long courierId,
-            Long courierUserId
+            Long courierUserId,
+            Long customerId
     ) {
         CourierEvent event = new CourierEvent(
                 UUID.randomUUID(),
@@ -32,6 +33,7 @@ public class CourierEventProducer {
                 deliveryId,
                 courierId,
                 courierUserId,
+                customerId,
                 LocalDateTime.now()
         );
 

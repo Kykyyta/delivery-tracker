@@ -2,52 +2,85 @@ services:
 
   delivery-db:
     image: postgres:17
+
     environment:
       POSTGRES_DB: delivery_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+
     volumes:
       - delivery-db-data:/var/lib/postgresql/data
+
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d delivery_db"]
       interval: 5s
       timeout: 5s
       retries: 20
       start_period: 10s
+
     restart: unless-stopped
 
 
   courier-db:
     image: postgres:17
+
     environment:
       POSTGRES_DB: courier_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+
     volumes:
       - courier-db-data:/var/lib/postgresql/data
+
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d courier_db"]
       interval: 5s
       timeout: 5s
       retries: 20
       start_period: 10s
+
     restart: unless-stopped
 
 
   notification-db:
     image: postgres:17
+
     environment:
       POSTGRES_DB: notification_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+
     volumes:
       - notification-db-data:/var/lib/postgresql/data
+
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d notification_db"]
       interval: 5s
       timeout: 5s
       retries: 20
       start_period: 10s
+
+    restart: unless-stopped
+
+
+  auth-db:
+    image: postgres:17
+
+    environment:
+      POSTGRES_DB: delivery_auth
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d delivery_auth"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
     restart: unless-stopped
 
 
@@ -93,6 +126,29 @@ services:
     restart: unless-stopped
 
 
+  auth-service:
+    build:
+      context: ./auth-service
+
+    ports:
+      - "8083:8083"
+
+    environment:
+      DB_URL: jdbc:postgresql://auth-db:5432/delivery_auth
+      DB_USERNAME: postgres
+      DB_PASSWORD: "${POSTGRES_PASSWORD}"
+
+      JWT_SECRET: "${JWT_SECRET}"
+
+      SERVER_PORT: 8083
+
+    depends_on:
+      auth-db:
+        condition: service_healthy
+
+    restart: on-failure
+
+
   delivery-service:
     build:
       context: ./delivery-service
@@ -106,6 +162,8 @@ services:
       DB_PASSWORD: "${POSTGRES_PASSWORD}"
 
       KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+
+      JWT_SECRET: "${JWT_SECRET}"
 
       SERVER_PORT: 8080
 
@@ -132,6 +190,8 @@ services:
 
       KAFKA_BOOTSTRAP_SERVERS: kafka:19092
 
+      JWT_SECRET: "${JWT_SECRET}"
+
       SERVER_PORT: 8081
 
     depends_on:
@@ -157,6 +217,8 @@ services:
 
       KAFKA_BOOTSTRAP_SERVERS: kafka:19092
 
+      JWT_SECRET: "${JWT_SECRET}"
+
       SERVER_PORT: 8082
 
     depends_on:
@@ -172,3 +234,4 @@ volumes:
   delivery-db-data:
   courier-db-data:
   notification-db-data:
+  auth-db-data:

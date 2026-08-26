@@ -25,6 +25,9 @@ public class Notification {
     @Column(name = "delivery_id", nullable = false)
     private Long deliveryId;
 
+    @Column(name = "customer_id")
+    private Long customerId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private NotificationType type;

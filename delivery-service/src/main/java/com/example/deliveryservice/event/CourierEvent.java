@@ -10,6 +10,7 @@ public record CourierEvent(
         Long deliveryId,
         Long courierId,
         Long courierUserId,
+        Long customerId,
         LocalDateTime occurredAt
 
 ) {

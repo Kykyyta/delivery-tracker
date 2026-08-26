@@ -10,6 +10,7 @@ public record NotificationResponse(
         Long id,
         UUID eventId,
         Long deliveryId,
+        Long customerId,
         NotificationType type,
         String message,
         boolean read,

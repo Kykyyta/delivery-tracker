@@ -8,6 +8,7 @@ public record DeliveryEvent(
         UUID eventId,
         DeliveryEventType eventType,
         Long deliveryId,
+        Long customerId,
         LocalDateTime occurredAt
 
 ) {

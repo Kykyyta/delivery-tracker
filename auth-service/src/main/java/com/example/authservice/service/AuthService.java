@@ -4,6 +4,7 @@ import com.example.authservice.dto.AuthResponse;
 import com.example.authservice.dto.LoginRequest;
 import com.example.authservice.dto.LoginResponse;
 import com.example.authservice.dto.RegisterRequest;
+import com.example.authservice.exception.DuplicateEmailException;
 import com.example.authservice.mapper.UserMapper;
 import com.example.authservice.model.Role;
 import com.example.authservice.model.User;
@@ -43,12 +44,18 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        return createUser(request, Role.CUSTOMER);
+        return createUser(
+                request,
+                Role.CUSTOMER
+        );
     }
 
     @Transactional
     public AuthResponse createCourier(RegisterRequest request) {
-        return createUser(request, Role.COURIER);
+        return createUser(
+                request,
+                Role.COURIER
+        );
     }
 
     @Transactional(readOnly = true)
@@ -82,8 +89,8 @@ public class AuthService {
             Role role
     ) {
         if (userRepository.existsByEmail(request.email())) {
-            throw new IllegalArgumentException(
-                    "User with this email already exists"
+            throw new DuplicateEmailException(
+                    request.email()
             );
         }
 
@@ -93,10 +100,13 @@ public class AuthService {
         );
 
         user.setPassword(
-                passwordEncoder.encode(request.password())
+                passwordEncoder.encode(
+                        request.password()
+                )
         );
 
-        User savedUser = userRepository.save(user);
+        User savedUser =
+                userRepository.save(user);
 
         return userMapper.toResponse(savedUser);
     }

@@ -29,6 +29,7 @@ public class DeliveryEventConsumer {
                     notificationService.createNotification(
                             event.eventId(),
                             event.deliveryId(),
+                            event.customerId(),
                             NotificationType.DELIVERY_CREATED,
                             "Доставка #" + event.deliveryId() + " создана"
                     );
@@ -37,6 +38,7 @@ public class DeliveryEventConsumer {
                     notificationService.createNotification(
                             event.eventId(),
                             event.deliveryId(),
+                            event.customerId(),
                             NotificationType.DELIVERY_PICKED_UP,
                             "Курьер забрал доставку #" + event.deliveryId()
                     );
@@ -45,6 +47,7 @@ public class DeliveryEventConsumer {
                     notificationService.createNotification(
                             event.eventId(),
                             event.deliveryId(),
+                            event.customerId(),
                             NotificationType.DELIVERY_COMPLETED,
                             "Доставка #" + event.deliveryId()
                                     + " успешно завершена"
@@ -54,6 +57,7 @@ public class DeliveryEventConsumer {
                     notificationService.createNotification(
                             event.eventId(),
                             event.deliveryId(),
+                            event.customerId(),
                             NotificationType.DELIVERY_CANCELLED,
                             "Доставка #" + event.deliveryId()
                                     + " отменена"

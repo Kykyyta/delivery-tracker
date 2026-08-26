@@ -6,21 +6,37 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
+public interface DeliveryRepository
+        extends JpaRepository<Delivery, Long> {
 
-    List<Delivery> findByStatus(DeliveryStatus status);
+    List<Delivery> findByStatus(
+            DeliveryStatus status
+    );
 
-    List<Delivery> findByCourierId(Long courierId);
+    List<Delivery> findByCourierId(
+            Long courierId
+    );
 
     List<Delivery> findByStatusAndCourierId(
             DeliveryStatus status,
             Long courierId
     );
 
-    List<Delivery> findByCustomerId(Long customerId);
+    List<Delivery> findByCustomerId(
+            Long customerId
+    );
 
     List<Delivery> findByCustomerIdAndStatus(
             Long customerId,
+            DeliveryStatus status
+    );
+
+    List<Delivery> findByCourierUserId(
+            Long courierUserId
+    );
+
+    List<Delivery> findByCourierUserIdAndStatus(
+            Long courierUserId,
             DeliveryStatus status
     );
 }

@@ -27,20 +27,27 @@ public class DeliveryEventConsumer {
         if (event.eventType() == DeliveryEventType.DELIVERY_CREATED) {
 
             CourierResponse courier =
-                    courierService.assignDelivery(event.deliveryId());
+                    courierService.assignDelivery(
+                            event.deliveryId()
+                    );
 
             courierEventProducer.sendCourierAssigned(
                     event.deliveryId(),
                     courier.id(),
-                    courier.userId()
+                    courier.userId(),
+                    event.customerId()
             );
         }
 
-        if (event.eventType() == DeliveryEventType.DELIVERY_COMPLETED) {
-            courierService.releaseCourier(event.deliveryId());
+        if (event.eventType()
+                == DeliveryEventType.DELIVERY_COMPLETED) {
+            courierService.releaseCourier(
+                    event.deliveryId()
+            );
         }
 
-        if (event.eventType() == DeliveryEventType.DELIVERY_CANCELLED) {
+        if (event.eventType()
+                == DeliveryEventType.DELIVERY_CANCELLED) {
             courierService.releaseCourierIfAssigned(
                     event.deliveryId()
             );

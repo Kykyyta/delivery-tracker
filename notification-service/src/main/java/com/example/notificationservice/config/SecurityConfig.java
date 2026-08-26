@@ -55,13 +55,13 @@ public class SecurityConfig {
                                 HttpMethod.GET,
                                 "/api/notifications/**"
                         )
-                        .hasRole("ADMIN")
+                        .hasAnyRole("CUSTOMER", "ADMIN")
 
                         .requestMatchers(
                                 HttpMethod.PATCH,
                                 "/api/notifications/*/read"
                         )
-                        .hasRole("ADMIN")
+                        .hasAnyRole("CUSTOMER", "ADMIN")
 
                         .requestMatchers("/api/notifications/**")
                         .denyAll()

@@ -21,42 +21,60 @@ public class DeliveryEventProducer {
         this.kafkaTemplate = kafkaTemplate;
     }
 
-    public void sendDeliveryCreated(Long deliveryId) {
+    public void sendDeliveryCreated(
+            Long deliveryId,
+            Long customerId
+    ) {
         sendEvent(
                 DeliveryEventType.DELIVERY_CREATED,
-                deliveryId
+                deliveryId,
+                customerId
         );
     }
 
-    public void sendDeliveryPickedUp(Long deliveryId) {
+    public void sendDeliveryPickedUp(
+            Long deliveryId,
+            Long customerId
+    ) {
         sendEvent(
                 DeliveryEventType.DELIVERY_PICKED_UP,
-                deliveryId
+                deliveryId,
+                customerId
         );
     }
 
-    public void sendDeliveryCompleted(Long deliveryId) {
+    public void sendDeliveryCompleted(
+            Long deliveryId,
+            Long customerId
+    ) {
         sendEvent(
                 DeliveryEventType.DELIVERY_COMPLETED,
-                deliveryId
+                deliveryId,
+                customerId
         );
     }
 
-    public void sendDeliveryCancelled(Long deliveryId) {
+    public void sendDeliveryCancelled(
+            Long deliveryId,
+            Long customerId
+    ) {
         sendEvent(
                 DeliveryEventType.DELIVERY_CANCELLED,
-                deliveryId
+                deliveryId,
+                customerId
         );
     }
 
     private void sendEvent(
             DeliveryEventType eventType,
-            Long deliveryId
+            Long deliveryId,
+            Long customerId
     ) {
         DeliveryEvent event = new DeliveryEvent(
                 UUID.randomUUID(),
                 eventType,
                 deliveryId,
+                customerId,
                 LocalDateTime.now()
         );
 

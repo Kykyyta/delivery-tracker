@@ -5,6 +5,8 @@ import com.example.notificationservice.service.NotificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -35,11 +37,15 @@ public class NotificationController {
             @RequestParam(required = false) Long deliveryId,
 
             @Parameter(description = "Статус прочтения уведомления")
-            @RequestParam(required = false) Boolean read
+            @RequestParam(required = false) Boolean read,
+
+            @AuthenticationPrincipal Jwt jwt
     ) {
         return notificationService.getAllNotifications(
                 deliveryId,
-                read
+                read,
+                getUserId(jwt),
+                getRole(jwt)
         );
     }
 
@@ -49,9 +55,15 @@ public class NotificationController {
     @GetMapping("/{id}")
     public NotificationResponse getNotificationById(
             @Parameter(description = "ID уведомления", required = true)
-            @PathVariable Long id
+            @PathVariable Long id,
+
+            @AuthenticationPrincipal Jwt jwt
     ) {
-        return notificationService.getNotificationById(id);
+        return notificationService.getNotificationById(
+                id,
+                getUserId(jwt),
+                getRole(jwt)
+        );
     }
 
     @Operation(
@@ -61,8 +73,24 @@ public class NotificationController {
     @PatchMapping("/{id}/read")
     public NotificationResponse markAsRead(
             @Parameter(description = "ID уведомления", required = true)
-            @PathVariable Long id
+            @PathVariable Long id,
+
+            @AuthenticationPrincipal Jwt jwt
     ) {
-        return notificationService.markAsRead(id);
+        return notificationService.markAsRead(
+                id,
+                getUserId(jwt),
+                getRole(jwt)
+        );
+    }
+
+    private Long getUserId(Jwt jwt) {
+        Number userId = jwt.getClaim("userId");
+
+        return userId.longValue();
+    }
+
+    private String getRole(Jwt jwt) {
+        return jwt.getClaimAsString("role");
     }
 }

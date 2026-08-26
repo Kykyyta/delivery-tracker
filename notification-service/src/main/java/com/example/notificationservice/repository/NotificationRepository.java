@@ -6,7 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.UUID;
 
-public interface NotificationRepository extends JpaRepository<Notification, Long> {
+public interface NotificationRepository
+        extends JpaRepository<Notification, Long> {
 
     boolean existsByEventId(UUID eventId);
 
@@ -15,6 +16,24 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     List<Notification> findByRead(boolean read);
 
     List<Notification> findByDeliveryIdAndRead(
+            Long deliveryId,
+            boolean read
+    );
+
+    List<Notification> findByCustomerId(Long customerId);
+
+    List<Notification> findByCustomerIdAndDeliveryId(
+            Long customerId,
+            Long deliveryId
+    );
+
+    List<Notification> findByCustomerIdAndRead(
+            Long customerId,
+            boolean read
+    );
+
+    List<Notification> findByCustomerIdAndDeliveryIdAndRead(
+            Long customerId,
             Long deliveryId,
             boolean read
     );

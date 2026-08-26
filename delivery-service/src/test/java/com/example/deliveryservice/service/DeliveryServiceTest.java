@@ -27,8 +27,11 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class DeliveryServiceTest {
 
+    private static final Long DELIVERY_ID = 1L;
+
     private static final Long CUSTOMER_ID = 10L;
     private static final Long OTHER_CUSTOMER_ID = 11L;
+
     private static final Long COURIER_ID = 5L;
     private static final Long COURIER_USER_ID = 20L;
     private static final Long OTHER_COURIER_USER_ID = 21L;
@@ -43,17 +46,17 @@ class DeliveryServiceTest {
     private DeliveryEventProducer deliveryEventProducer;
 
     @Mock
-    private DeliveryResponse response;
+    private DeliveryResponse deliveryResponse;
 
     @InjectMocks
     private DeliveryService deliveryService;
 
     private Delivery delivery;
-    private DeliveryRequest request;
+    private DeliveryRequest deliveryRequest;
 
     @BeforeEach
     void setUp() {
-        request = new DeliveryRequest(
+        deliveryRequest = new DeliveryRequest(
                 "Иван Иванов",
                 "+79991234567",
                 "Москва, Тверская 10",
@@ -62,7 +65,7 @@ class DeliveryServiceTest {
 
         delivery = new Delivery();
 
-        delivery.setId(1L);
+        delivery.setId(DELIVERY_ID);
         delivery.setCustomerId(CUSTOMER_ID);
         delivery.setCustomerName("Иван Иванов");
         delivery.setCustomerPhone("+79991234567");
@@ -74,33 +77,41 @@ class DeliveryServiceTest {
     }
 
     @Test
-    void createDeliveryShouldSetCustomerIdAndReturnCreatedDelivery() {
+    void createDeliveryShouldCreateDeliveryWithCustomerId() {
         delivery.setCustomerId(null);
 
-        when(deliveryMapper.toEntity(request))
+        when(deliveryMapper.toEntity(deliveryRequest))
                 .thenReturn(delivery);
 
         when(deliveryRepository.save(delivery))
                 .thenReturn(delivery);
 
         when(deliveryMapper.toResponse(delivery))
-                .thenReturn(response);
+                .thenReturn(deliveryResponse);
 
         DeliveryResponse result =
                 deliveryService.createDelivery(
-                        request,
+                        deliveryRequest,
                         CUSTOMER_ID
                 );
 
-        assertSame(response, result);
+        assertSame(deliveryResponse, result);
         assertEquals(CUSTOMER_ID, delivery.getCustomerId());
 
-        verify(deliveryMapper).toEntity(request);
-        verify(deliveryRepository).save(delivery);
-        verify(deliveryMapper).toResponse(delivery);
+        verify(deliveryMapper)
+                .toEntity(deliveryRequest);
+
+        verify(deliveryRepository)
+                .save(delivery);
 
         verify(deliveryEventProducer)
-                .sendDeliveryCreated(delivery.getId());
+                .sendDeliveryCreated(
+                        DELIVERY_ID,
+                        CUSTOMER_ID
+                );
+
+        verify(deliveryMapper)
+                .toResponse(delivery);
     }
 
     @Test
@@ -109,20 +120,21 @@ class DeliveryServiceTest {
                 .thenReturn(List.of(delivery));
 
         when(deliveryMapper.toResponse(delivery))
-                .thenReturn(response);
+                .thenReturn(deliveryResponse);
 
         List<DeliveryResponse> result =
                 deliveryService.getAllDeliveries(
                         null,
                         null,
-                        1L,
+                        999L,
                         "ADMIN"
                 );
 
         assertEquals(1, result.size());
-        assertSame(response, result.getFirst());
+        assertSame(deliveryResponse, result.getFirst());
 
-        verify(deliveryRepository).findAll();
+        verify(deliveryRepository)
+                .findAll();
     }
 
     @Test
@@ -132,18 +144,18 @@ class DeliveryServiceTest {
         )).thenReturn(List.of(delivery));
 
         when(deliveryMapper.toResponse(delivery))
-                .thenReturn(response);
+                .thenReturn(deliveryResponse);
 
         List<DeliveryResponse> result =
                 deliveryService.getAllDeliveries(
                         DeliveryStatus.CREATED,
                         null,
-                        1L,
+                        999L,
                         "ADMIN"
                 );
 
         assertEquals(1, result.size());
-        assertSame(response, result.getFirst());
+        assertSame(deliveryResponse, result.getFirst());
 
         verify(deliveryRepository)
                 .findByStatus(DeliveryStatus.CREATED);
@@ -160,18 +172,18 @@ class DeliveryServiceTest {
                 .thenReturn(List.of(delivery));
 
         when(deliveryMapper.toResponse(delivery))
-                .thenReturn(response);
+                .thenReturn(deliveryResponse);
 
         List<DeliveryResponse> result =
                 deliveryService.getAllDeliveries(
                         null,
                         COURIER_ID,
-                        1L,
+                        999L,
                         "ADMIN"
                 );
 
         assertEquals(1, result.size());
-        assertSame(response, result.getFirst());
+        assertSame(deliveryResponse, result.getFirst());
 
         verify(deliveryRepository)
                 .findByCourierId(COURIER_ID);
@@ -179,7 +191,10 @@ class DeliveryServiceTest {
 
     @Test
     void getAllDeliveriesShouldFilterByStatusAndCourierIdForAdmin() {
-        delivery.setStatus(DeliveryStatus.COURIER_ASSIGNED);
+        delivery.setStatus(
+                DeliveryStatus.COURIER_ASSIGNED
+        );
+
         delivery.setCourierId(COURIER_ID);
 
         when(deliveryRepository.findByStatusAndCourierId(
@@ -188,18 +203,18 @@ class DeliveryServiceTest {
         )).thenReturn(List.of(delivery));
 
         when(deliveryMapper.toResponse(delivery))
-                .thenReturn(response);
+                .thenReturn(deliveryResponse);
 
         List<DeliveryResponse> result =
                 deliveryService.getAllDeliveries(
                         DeliveryStatus.COURIER_ASSIGNED,
                         COURIER_ID,
-                        1L,
+                        999L,
                         "ADMIN"
                 );
 
         assertEquals(1, result.size());
-        assertSame(response, result.getFirst());
+        assertSame(deliveryResponse, result.getFirst());
 
         verify(deliveryRepository)
                 .findByStatusAndCourierId(
@@ -214,7 +229,7 @@ class DeliveryServiceTest {
                 .thenReturn(List.of(delivery));
 
         when(deliveryMapper.toResponse(delivery))
-                .thenReturn(response);
+                .thenReturn(deliveryResponse);
 
         List<DeliveryResponse> result =
                 deliveryService.getAllDeliveries(
@@ -225,7 +240,7 @@ class DeliveryServiceTest {
                 );
 
         assertEquals(1, result.size());
-        assertSame(response, result.getFirst());
+        assertSame(deliveryResponse, result.getFirst());
 
         verify(deliveryRepository)
                 .findByCustomerId(CUSTOMER_ID);
@@ -242,7 +257,7 @@ class DeliveryServiceTest {
         )).thenReturn(List.of(delivery));
 
         when(deliveryMapper.toResponse(delivery))
-                .thenReturn(response);
+                .thenReturn(deliveryResponse);
 
         List<DeliveryResponse> result =
                 deliveryService.getAllDeliveries(
@@ -253,45 +268,131 @@ class DeliveryServiceTest {
                 );
 
         assertEquals(1, result.size());
-        assertSame(response, result.getFirst());
+        assertSame(deliveryResponse, result.getFirst());
 
         verify(deliveryRepository)
                 .findByCustomerIdAndStatus(
                         CUSTOMER_ID,
                         DeliveryStatus.CREATED
                 );
+
+        verify(deliveryRepository, never())
+                .findAll();
+    }
+
+    @Test
+    void getAllDeliveriesShouldReturnOnlyCourierDeliveries() {
+        delivery.setCourierUserId(COURIER_USER_ID);
+
+        when(deliveryRepository.findByCourierUserId(
+                COURIER_USER_ID
+        )).thenReturn(List.of(delivery));
+
+        when(deliveryMapper.toResponse(delivery))
+                .thenReturn(deliveryResponse);
+
+        List<DeliveryResponse> result =
+                deliveryService.getAllDeliveries(
+                        null,
+                        null,
+                        COURIER_USER_ID,
+                        "COURIER"
+                );
+
+        assertEquals(1, result.size());
+        assertSame(deliveryResponse, result.getFirst());
+
+        verify(deliveryRepository)
+                .findByCourierUserId(
+                        COURIER_USER_ID
+                );
+
+        verify(deliveryRepository, never())
+                .findAll();
+    }
+
+    @Test
+    void getAllDeliveriesShouldReturnOnlyCourierDeliveriesWithStatus() {
+        delivery.setCourierUserId(COURIER_USER_ID);
+        delivery.setStatus(DeliveryStatus.PICKED_UP);
+
+        when(deliveryRepository.findByCourierUserIdAndStatus(
+                COURIER_USER_ID,
+                DeliveryStatus.PICKED_UP
+        )).thenReturn(List.of(delivery));
+
+        when(deliveryMapper.toResponse(delivery))
+                .thenReturn(deliveryResponse);
+
+        List<DeliveryResponse> result =
+                deliveryService.getAllDeliveries(
+                        DeliveryStatus.PICKED_UP,
+                        null,
+                        COURIER_USER_ID,
+                        "COURIER"
+                );
+
+        assertEquals(1, result.size());
+        assertSame(deliveryResponse, result.getFirst());
+
+        verify(deliveryRepository)
+                .findByCourierUserIdAndStatus(
+                        COURIER_USER_ID,
+                        DeliveryStatus.PICKED_UP
+                );
+
+        verify(deliveryRepository, never())
+                .findAll();
+    }
+
+    @Test
+    void getAllDeliveriesShouldThrowAccessDeniedForUnknownRole() {
+        assertThrows(
+                AccessDeniedException.class,
+                () -> deliveryService.getAllDeliveries(
+                        null,
+                        null,
+                        100L,
+                        "UNKNOWN"
+                )
+        );
+
+        verifyNoInteractions(deliveryMapper);
     }
 
     @Test
     void getDeliveryByIdShouldReturnDeliveryForOwnerCustomer() {
-        when(deliveryRepository.findById(1L))
+        when(deliveryRepository.findById(DELIVERY_ID))
                 .thenReturn(Optional.of(delivery));
 
         when(deliveryMapper.toResponse(delivery))
-                .thenReturn(response);
+                .thenReturn(deliveryResponse);
 
         DeliveryResponse result =
                 deliveryService.getDeliveryById(
-                        1L,
+                        DELIVERY_ID,
                         CUSTOMER_ID,
                         "CUSTOMER"
                 );
 
-        assertSame(response, result);
+        assertSame(deliveryResponse, result);
 
-        verify(deliveryRepository).findById(1L);
-        verify(deliveryMapper).toResponse(delivery);
+        verify(deliveryRepository)
+                .findById(DELIVERY_ID);
+
+        verify(deliveryMapper)
+                .toResponse(delivery);
     }
 
     @Test
     void getDeliveryByIdShouldThrowAccessDeniedForAnotherCustomer() {
-        when(deliveryRepository.findById(1L))
+        when(deliveryRepository.findById(DELIVERY_ID))
                 .thenReturn(Optional.of(delivery));
 
         assertThrows(
                 AccessDeniedException.class,
                 () -> deliveryService.getDeliveryById(
-                        1L,
+                        DELIVERY_ID,
                         OTHER_CUSTOMER_ID,
                         "CUSTOMER"
                 )
@@ -302,25 +403,71 @@ class DeliveryServiceTest {
     }
 
     @Test
-    void getDeliveryByIdShouldReturnDeliveryForAdmin() {
-        when(deliveryRepository.findById(1L))
+    void getDeliveryByIdShouldReturnAssignedDeliveryForCourier() {
+        delivery.setCourierUserId(COURIER_USER_ID);
+
+        when(deliveryRepository.findById(DELIVERY_ID))
                 .thenReturn(Optional.of(delivery));
 
         when(deliveryMapper.toResponse(delivery))
-                .thenReturn(response);
+                .thenReturn(deliveryResponse);
 
         DeliveryResponse result =
                 deliveryService.getDeliveryById(
-                        1L,
-                        1L,
-                        "ADMIN"
+                        DELIVERY_ID,
+                        COURIER_USER_ID,
+                        "COURIER"
                 );
 
-        assertSame(response, result);
+        assertSame(deliveryResponse, result);
+
+        verify(deliveryMapper)
+                .toResponse(delivery);
     }
 
     @Test
-    void getDeliveryByIdShouldThrowExceptionWhenDeliveryNotFound() {
+    void getDeliveryByIdShouldThrowAccessDeniedForAnotherCourier() {
+        delivery.setCourierUserId(COURIER_USER_ID);
+
+        when(deliveryRepository.findById(DELIVERY_ID))
+                .thenReturn(Optional.of(delivery));
+
+        assertThrows(
+                AccessDeniedException.class,
+                () -> deliveryService.getDeliveryById(
+                        DELIVERY_ID,
+                        OTHER_COURIER_USER_ID,
+                        "COURIER"
+                )
+        );
+
+        verify(deliveryMapper, never())
+                .toResponse(any());
+    }
+
+    @Test
+    void getDeliveryByIdShouldReturnDeliveryForAdmin() {
+        when(deliveryRepository.findById(DELIVERY_ID))
+                .thenReturn(Optional.of(delivery));
+
+        when(deliveryMapper.toResponse(delivery))
+                .thenReturn(deliveryResponse);
+
+        DeliveryResponse result =
+                deliveryService.getDeliveryById(
+                        DELIVERY_ID,
+                        999L,
+                        "ADMIN"
+                );
+
+        assertSame(deliveryResponse, result);
+
+        verify(deliveryMapper)
+                .toResponse(delivery);
+    }
+
+    @Test
+    void getDeliveryByIdShouldThrowDeliveryNotFoundException() {
         when(deliveryRepository.findById(999L))
                 .thenReturn(Optional.empty());
 
@@ -333,49 +480,51 @@ class DeliveryServiceTest {
                 )
         );
 
-        verify(deliveryRepository).findById(999L);
-
         verify(deliveryMapper, never())
                 .toResponse(any());
     }
 
     @Test
     void updateDeliveryShouldUpdateOwnDeliveryForCustomer() {
-        when(deliveryRepository.findById(1L))
+        when(deliveryRepository.findById(DELIVERY_ID))
                 .thenReturn(Optional.of(delivery));
 
         when(deliveryRepository.save(delivery))
                 .thenReturn(delivery);
 
         when(deliveryMapper.toResponse(delivery))
-                .thenReturn(response);
+                .thenReturn(deliveryResponse);
 
         DeliveryResponse result =
                 deliveryService.updateDelivery(
-                        1L,
-                        request,
+                        DELIVERY_ID,
+                        deliveryRequest,
                         CUSTOMER_ID,
                         "CUSTOMER"
                 );
 
-        assertSame(response, result);
+        assertSame(deliveryResponse, result);
 
         verify(deliveryMapper)
-                .updateEntity(delivery, request);
+                .updateEntity(
+                        delivery,
+                        deliveryRequest
+                );
 
-        verify(deliveryRepository).save(delivery);
+        verify(deliveryRepository)
+                .save(delivery);
     }
 
     @Test
     void updateDeliveryShouldThrowAccessDeniedForAnotherCustomer() {
-        when(deliveryRepository.findById(1L))
+        when(deliveryRepository.findById(DELIVERY_ID))
                 .thenReturn(Optional.of(delivery));
 
         assertThrows(
                 AccessDeniedException.class,
                 () -> deliveryService.updateDelivery(
-                        1L,
-                        request,
+                        DELIVERY_ID,
+                        deliveryRequest,
                         OTHER_CUSTOMER_ID,
                         "CUSTOMER"
                 )
@@ -389,40 +538,79 @@ class DeliveryServiceTest {
     }
 
     @Test
-    void deleteDeliveryShouldDeleteDelivery() {
-        when(deliveryRepository.findById(1L))
+    void updateDeliveryShouldThrowAccessDeniedForCourier() {
+        delivery.setCourierUserId(COURIER_USER_ID);
+
+        when(deliveryRepository.findById(DELIVERY_ID))
                 .thenReturn(Optional.of(delivery));
 
-        deliveryService.deleteDelivery(1L);
+        assertThrows(
+                AccessDeniedException.class,
+                () -> deliveryService.updateDelivery(
+                        DELIVERY_ID,
+                        deliveryRequest,
+                        COURIER_USER_ID,
+                        "COURIER"
+                )
+        );
 
-        verify(deliveryRepository)
-                .delete(delivery);
+        verify(deliveryMapper, never())
+                .updateEntity(any(), any());
+
+        verify(deliveryRepository, never())
+                .save(any());
     }
 
     @Test
-    void assignCourierShouldAssignCourierAndCourierUser() {
-        when(deliveryRepository.findById(1L))
+    void updateDeliveryShouldAllowAdmin() {
+        when(deliveryRepository.findById(DELIVERY_ID))
                 .thenReturn(Optional.of(delivery));
 
         when(deliveryRepository.save(delivery))
                 .thenReturn(delivery);
 
         when(deliveryMapper.toResponse(delivery))
-                .thenReturn(response);
+                .thenReturn(deliveryResponse);
+
+        DeliveryResponse result =
+                deliveryService.updateDelivery(
+                        DELIVERY_ID,
+                        deliveryRequest,
+                        999L,
+                        "ADMIN"
+                );
+
+        assertSame(deliveryResponse, result);
+
+        verify(deliveryMapper)
+                .updateEntity(
+                        delivery,
+                        deliveryRequest
+                );
+
+        verify(deliveryRepository)
+                .save(delivery);
+    }
+
+    @Test
+    void assignCourierShouldAssignCourierAndCourierUser() {
+        when(deliveryRepository.findById(DELIVERY_ID))
+                .thenReturn(Optional.of(delivery));
+
+        when(deliveryRepository.save(delivery))
+                .thenReturn(delivery);
+
+        when(deliveryMapper.toResponse(delivery))
+                .thenReturn(deliveryResponse);
 
         DeliveryResponse result =
                 deliveryService.assignCourier(
-                        1L,
+                        DELIVERY_ID,
                         COURIER_ID,
                         COURIER_USER_ID
                 );
 
-        assertSame(response, result);
-
-        assertEquals(
-                DeliveryStatus.COURIER_ASSIGNED,
-                delivery.getStatus()
-        );
+        assertSame(deliveryResponse, result);
 
         assertEquals(
                 COURIER_ID,
@@ -434,21 +622,28 @@ class DeliveryServiceTest {
                 delivery.getCourierUserId()
         );
 
+        assertEquals(
+                DeliveryStatus.COURIER_ASSIGNED,
+                delivery.getStatus()
+        );
+
         verify(deliveryRepository)
                 .save(delivery);
     }
 
     @Test
     void assignCourierShouldThrowExceptionForInvalidStatus() {
-        delivery.setStatus(DeliveryStatus.PICKED_UP);
+        delivery.setStatus(
+                DeliveryStatus.PICKED_UP
+        );
 
-        when(deliveryRepository.findById(1L))
+        when(deliveryRepository.findById(DELIVERY_ID))
                 .thenReturn(Optional.of(delivery));
 
         assertThrows(
                 InvalidDeliveryStatusException.class,
                 () -> deliveryService.assignCourier(
-                        1L,
+                        DELIVERY_ID,
                         COURIER_ID,
                         COURIER_USER_ID
                 )
@@ -460,52 +655,61 @@ class DeliveryServiceTest {
 
     @Test
     void pickupDeliveryShouldChangeStatusForAssignedCourier() {
-        delivery.setStatus(DeliveryStatus.COURIER_ASSIGNED);
+        delivery.setStatus(
+                DeliveryStatus.COURIER_ASSIGNED
+        );
+
         delivery.setCourierId(COURIER_ID);
         delivery.setCourierUserId(COURIER_USER_ID);
 
-        when(deliveryRepository.findById(1L))
+        when(deliveryRepository.findById(DELIVERY_ID))
                 .thenReturn(Optional.of(delivery));
 
         when(deliveryRepository.save(delivery))
                 .thenReturn(delivery);
 
         when(deliveryMapper.toResponse(delivery))
-                .thenReturn(response);
+                .thenReturn(deliveryResponse);
 
         DeliveryResponse result =
                 deliveryService.pickupDelivery(
-                        1L,
+                        DELIVERY_ID,
                         COURIER_USER_ID,
                         "COURIER"
                 );
 
-        assertSame(response, result);
+        assertSame(deliveryResponse, result);
 
         assertEquals(
                 DeliveryStatus.PICKED_UP,
                 delivery.getStatus()
         );
 
-        verify(deliveryRepository).save(delivery);
+        verify(deliveryRepository)
+                .save(delivery);
 
         verify(deliveryEventProducer)
-                .sendDeliveryPickedUp(1L);
+                .sendDeliveryPickedUp(
+                        DELIVERY_ID,
+                        CUSTOMER_ID
+                );
     }
 
     @Test
     void pickupDeliveryShouldThrowAccessDeniedForAnotherCourier() {
-        delivery.setStatus(DeliveryStatus.COURIER_ASSIGNED);
-        delivery.setCourierId(COURIER_ID);
+        delivery.setStatus(
+                DeliveryStatus.COURIER_ASSIGNED
+        );
+
         delivery.setCourierUserId(COURIER_USER_ID);
 
-        when(deliveryRepository.findById(1L))
+        when(deliveryRepository.findById(DELIVERY_ID))
                 .thenReturn(Optional.of(delivery));
 
         assertThrows(
                 AccessDeniedException.class,
                 () -> deliveryService.pickupDelivery(
-                        1L,
+                        DELIVERY_ID,
                         OTHER_COURIER_USER_ID,
                         "COURIER"
                 )
@@ -520,47 +724,65 @@ class DeliveryServiceTest {
                 .save(any());
 
         verify(deliveryEventProducer, never())
-                .sendDeliveryPickedUp(anyLong());
+                .sendDeliveryPickedUp(
+                        anyLong(),
+                        anyLong()
+                );
     }
 
     @Test
     void pickupDeliveryShouldAllowAdmin() {
-        delivery.setStatus(DeliveryStatus.COURIER_ASSIGNED);
+        delivery.setStatus(
+                DeliveryStatus.COURIER_ASSIGNED
+        );
+
         delivery.setCourierUserId(COURIER_USER_ID);
 
-        when(deliveryRepository.findById(1L))
+        when(deliveryRepository.findById(DELIVERY_ID))
                 .thenReturn(Optional.of(delivery));
 
         when(deliveryRepository.save(delivery))
                 .thenReturn(delivery);
 
         when(deliveryMapper.toResponse(delivery))
-                .thenReturn(response);
+                .thenReturn(deliveryResponse);
 
-        deliveryService.pickupDelivery(
-                1L,
-                999L,
-                "ADMIN"
-        );
+        DeliveryResponse result =
+                deliveryService.pickupDelivery(
+                        DELIVERY_ID,
+                        999L,
+                        "ADMIN"
+                );
+
+        assertSame(deliveryResponse, result);
 
         assertEquals(
                 DeliveryStatus.PICKED_UP,
                 delivery.getStatus()
         );
+
+        verify(deliveryEventProducer)
+                .sendDeliveryPickedUp(
+                        DELIVERY_ID,
+                        CUSTOMER_ID
+                );
     }
 
     @Test
     void pickupDeliveryShouldThrowExceptionForInvalidStatus() {
-        delivery.setStatus(DeliveryStatus.CREATED);
+        delivery.setStatus(
+                DeliveryStatus.CREATED
+        );
+
         delivery.setCourierUserId(COURIER_USER_ID);
 
-        when(deliveryRepository.findById(1L))
+        when(deliveryRepository.findById(DELIVERY_ID))
                 .thenReturn(Optional.of(delivery));
 
         assertThrows(
                 InvalidDeliveryStatusException.class,
                 () -> deliveryService.pickupDelivery(
-                        1L,
+                        DELIVERY_ID,
                         COURIER_USER_ID,
                         "COURIER"
                 )
@@ -568,56 +790,71 @@ class DeliveryServiceTest {
 
         verify(deliveryRepository, never())
                 .save(any());
+
+        verify(deliveryEventProducer, never())
+                .sendDeliveryPickedUp(
+                        anyLong(),
+                        anyLong()
+                );
     }
 
     @Test
     void completeDeliveryShouldChangeStatusForAssignedCourier() {
-        delivery.setStatus(DeliveryStatus.PICKED_UP);
+        delivery.setStatus(
+                DeliveryStatus.PICKED_UP
+        );
+
         delivery.setCourierId(COURIER_ID);
         delivery.setCourierUserId(COURIER_USER_ID);
 
-        when(deliveryRepository.findById(1L))
+        when(deliveryRepository.findById(DELIVERY_ID))
                 .thenReturn(Optional.of(delivery));
 
         when(deliveryRepository.save(delivery))
                 .thenReturn(delivery);
 
         when(deliveryMapper.toResponse(delivery))
-                .thenReturn(response);
+                .thenReturn(deliveryResponse);
 
         DeliveryResponse result =
                 deliveryService.completeDelivery(
-                        1L,
+                        DELIVERY_ID,
                         COURIER_USER_ID,
                         "COURIER"
                 );
 
-        assertSame(response, result);
+        assertSame(deliveryResponse, result);
 
         assertEquals(
                 DeliveryStatus.COMPLETED,
                 delivery.getStatus()
         );
 
-        verify(deliveryRepository).save(delivery);
+        verify(deliveryRepository)
+                .save(delivery);
 
         verify(deliveryEventProducer)
-                .sendDeliveryCompleted(1L);
+                .sendDeliveryCompleted(
+                        DELIVERY_ID,
+                        CUSTOMER_ID
+                );
     }
 
     @Test
     void completeDeliveryShouldThrowAccessDeniedForAnotherCourier() {
-        delivery.setStatus(DeliveryStatus.PICKED_UP);
-        delivery.setCourierId(COURIER_ID);
+        delivery.setStatus(
+                DeliveryStatus.PICKED_UP
+        );
+
         delivery.setCourierUserId(COURIER_USER_ID);
 
-        when(deliveryRepository.findById(1L))
+        when(deliveryRepository.findById(DELIVERY_ID))
                 .thenReturn(Optional.of(delivery));
 
         assertThrows(
                 AccessDeniedException.class,
                 () -> deliveryService.completeDelivery(
-                        1L,
+                        DELIVERY_ID,
                         OTHER_COURIER_USER_ID,
                         "COURIER"
                 )
@@ -632,47 +869,65 @@ class DeliveryServiceTest {
                 .save(any());
 
         verify(deliveryEventProducer, never())
-                .sendDeliveryCompleted(anyLong());
+                .sendDeliveryCompleted(
+                        anyLong(),
+                        anyLong()
+                );
     }
 
     @Test
     void completeDeliveryShouldAllowAdmin() {
-        delivery.setStatus(DeliveryStatus.PICKED_UP);
+        delivery.setStatus(
+                DeliveryStatus.PICKED_UP
+        );
+
         delivery.setCourierUserId(COURIER_USER_ID);
 
-        when(deliveryRepository.findById(1L))
+        when(deliveryRepository.findById(DELIVERY_ID))
                 .thenReturn(Optional.of(delivery));
 
         when(deliveryRepository.save(delivery))
                 .thenReturn(delivery);
 
         when(deliveryMapper.toResponse(delivery))
-                .thenReturn(response);
+                .thenReturn(deliveryResponse);
 
-        deliveryService.completeDelivery(
-                1L,
-                999L,
-                "ADMIN"
-        );
+        DeliveryResponse result =
+                deliveryService.completeDelivery(
+                        DELIVERY_ID,
+                        999L,
+                        "ADMIN"
+                );
+
+        assertSame(deliveryResponse, result);
 
         assertEquals(
                 DeliveryStatus.COMPLETED,
                 delivery.getStatus()
         );
+
+        verify(deliveryEventProducer)
+                .sendDeliveryCompleted(
+                        DELIVERY_ID,
+                        CUSTOMER_ID
+                );
     }
 
     @Test
     void completeDeliveryShouldThrowExceptionForInvalidStatus() {
-        delivery.setStatus(DeliveryStatus.CREATED);
+        delivery.setStatus(
+                DeliveryStatus.CREATED
+        );
+
         delivery.setCourierUserId(COURIER_USER_ID);
 
-        when(deliveryRepository.findById(1L))
+        when(deliveryRepository.findById(DELIVERY_ID))
                 .thenReturn(Optional.of(delivery));
 
         assertThrows(
                 InvalidDeliveryStatusException.class,
                 () -> deliveryService.completeDelivery(
-                        1L,
+                        DELIVERY_ID,
                         COURIER_USER_ID,
                         "COURIER"
                 )
@@ -680,49 +935,108 @@ class DeliveryServiceTest {
 
         verify(deliveryRepository, never())
                 .save(any());
+
+        verify(deliveryEventProducer, never())
+                .sendDeliveryCompleted(
+                        anyLong(),
+                        anyLong()
+                );
     }
 
     @Test
     void cancelDeliveryShouldCancelOwnDeliveryForCustomer() {
-        delivery.setStatus(DeliveryStatus.CREATED);
+        delivery.setStatus(
+                DeliveryStatus.CREATED
+        );
 
-        when(deliveryRepository.findById(1L))
+        when(deliveryRepository.findById(DELIVERY_ID))
                 .thenReturn(Optional.of(delivery));
 
         when(deliveryRepository.save(delivery))
                 .thenReturn(delivery);
 
         when(deliveryMapper.toResponse(delivery))
-                .thenReturn(response);
+                .thenReturn(deliveryResponse);
 
         DeliveryResponse result =
                 deliveryService.cancelDelivery(
-                        1L,
+                        DELIVERY_ID,
                         CUSTOMER_ID,
                         "CUSTOMER"
                 );
 
-        assertSame(response, result);
+        assertSame(deliveryResponse, result);
 
         assertEquals(
                 DeliveryStatus.CANCELLED,
                 delivery.getStatus()
         );
 
-        verify(deliveryRepository).save(delivery);
+        verify(deliveryRepository)
+                .save(delivery);
+
+        verify(deliveryEventProducer)
+                .sendDeliveryCancelled(
+                        DELIVERY_ID,
+                        CUSTOMER_ID
+                );
+    }
+
+    @Test
+    void cancelDeliveryShouldCancelCourierAssignedDeliveryForOwnerCustomer() {
+        delivery.setStatus(
+                DeliveryStatus.COURIER_ASSIGNED
+        );
+
+        delivery.setCourierId(COURIER_ID);
+        delivery.setCourierUserId(COURIER_USER_ID);
+
+        when(deliveryRepository.findById(DELIVERY_ID))
+                .thenReturn(Optional.of(delivery));
+
+        when(deliveryRepository.save(delivery))
+                .thenReturn(delivery);
+
+        when(deliveryMapper.toResponse(delivery))
+                .thenReturn(deliveryResponse);
+
+        DeliveryResponse result =
+                deliveryService.cancelDelivery(
+                        DELIVERY_ID,
+                        CUSTOMER_ID,
+                        "CUSTOMER"
+                );
+
+        assertSame(deliveryResponse, result);
+
+        assertEquals(
+                DeliveryStatus.CANCELLED,
+                delivery.getStatus()
+        );
+
+        verify(deliveryRepository)
+                .save(delivery);
+
+        verify(deliveryEventProducer)
+                .sendDeliveryCancelled(
+                        DELIVERY_ID,
+                        CUSTOMER_ID
+                );
     }
 
     @Test
     void cancelDeliveryShouldThrowAccessDeniedForAnotherCustomer() {
-        delivery.setStatus(DeliveryStatus.CREATED);
+        delivery.setStatus(
+                DeliveryStatus.CREATED
+        );
 
-        when(deliveryRepository.findById(1L))
+        when(deliveryRepository.findById(DELIVERY_ID))
                 .thenReturn(Optional.of(delivery));
 
         assertThrows(
                 AccessDeniedException.class,
                 () -> deliveryService.cancelDelivery(
-                        1L,
+                        DELIVERY_ID,
                         OTHER_CUSTOMER_ID,
                         "CUSTOMER"
                 )
@@ -735,19 +1049,93 @@ class DeliveryServiceTest {
 
         verify(deliveryRepository, never())
                 .save(any());
+
+        verify(deliveryEventProducer, never())
+                .sendDeliveryCancelled(
+                        anyLong(),
+                        anyLong()
+                );
+    }
+
+    @Test
+    void cancelDeliveryShouldThrowAccessDeniedForCourier() {
+        delivery.setStatus(
+                DeliveryStatus.COURIER_ASSIGNED
+        );
+
+        delivery.setCourierUserId(COURIER_USER_ID);
+
+        when(deliveryRepository.findById(DELIVERY_ID))
+                .thenReturn(Optional.of(delivery));
+
+        assertThrows(
+                AccessDeniedException.class,
+                () -> deliveryService.cancelDelivery(
+                        DELIVERY_ID,
+                        COURIER_USER_ID,
+                        "COURIER"
+                )
+        );
+
+        verify(deliveryRepository, never())
+                .save(any());
+
+        verify(deliveryEventProducer, never())
+                .sendDeliveryCancelled(
+                        anyLong(),
+                        anyLong()
+                );
+    }
+
+    @Test
+    void cancelDeliveryShouldAllowAdmin() {
+        delivery.setStatus(
+                DeliveryStatus.CREATED
+        );
+
+        when(deliveryRepository.findById(DELIVERY_ID))
+                .thenReturn(Optional.of(delivery));
+
+        when(deliveryRepository.save(delivery))
+                .thenReturn(delivery);
+
+        when(deliveryMapper.toResponse(delivery))
+                .thenReturn(deliveryResponse);
+
+        DeliveryResponse result =
+                deliveryService.cancelDelivery(
+                        DELIVERY_ID,
+                        999L,
+                        "ADMIN"
+                );
+
+        assertSame(deliveryResponse, result);
+
+        assertEquals(
+                DeliveryStatus.CANCELLED,
+                delivery.getStatus()
+        );
+
+        verify(deliveryEventProducer)
+                .sendDeliveryCancelled(
+                        DELIVERY_ID,
+                        CUSTOMER_ID
+                );
     }
 
     @Test
     void cancelDeliveryShouldThrowExceptionForInvalidStatus() {
-        delivery.setStatus(DeliveryStatus.COMPLETED);
+        delivery.setStatus(
+                DeliveryStatus.COMPLETED
+        );
 
-        when(deliveryRepository.findById(1L))
+        when(deliveryRepository.findById(DELIVERY_ID))
                 .thenReturn(Optional.of(delivery));
 
         assertThrows(
                 InvalidDeliveryStatusException.class,
                 () -> deliveryService.cancelDelivery(
-                        1L,
+                        DELIVERY_ID,
                         CUSTOMER_ID,
                         "CUSTOMER"
                 )
@@ -755,5 +1143,121 @@ class DeliveryServiceTest {
 
         verify(deliveryRepository, never())
                 .save(any());
+
+        verify(deliveryEventProducer, never())
+                .sendDeliveryCancelled(
+                        anyLong(),
+                        anyLong()
+                );
+    }
+
+    @Test
+    void deleteDeliveryShouldDeleteCancelledDelivery() {
+        delivery.setStatus(
+                DeliveryStatus.CANCELLED
+        );
+
+        when(deliveryRepository.findById(DELIVERY_ID))
+                .thenReturn(Optional.of(delivery));
+
+        deliveryService.deleteDelivery(
+                DELIVERY_ID
+        );
+
+        verify(deliveryRepository)
+                .delete(delivery);
+    }
+
+    @Test
+    void deleteDeliveryShouldDeleteCompletedDelivery() {
+        delivery.setStatus(
+                DeliveryStatus.COMPLETED
+        );
+
+        when(deliveryRepository.findById(DELIVERY_ID))
+                .thenReturn(Optional.of(delivery));
+
+        deliveryService.deleteDelivery(
+                DELIVERY_ID
+        );
+
+        verify(deliveryRepository)
+                .delete(delivery);
+    }
+
+    @Test
+    void deleteDeliveryShouldThrowExceptionForCreatedDelivery() {
+        delivery.setStatus(
+                DeliveryStatus.CREATED
+        );
+
+        when(deliveryRepository.findById(DELIVERY_ID))
+                .thenReturn(Optional.of(delivery));
+
+        assertThrows(
+                InvalidDeliveryStatusException.class,
+                () -> deliveryService.deleteDelivery(
+                        DELIVERY_ID
+                )
+        );
+
+        verify(deliveryRepository, never())
+                .delete(any());
+    }
+
+    @Test
+    void deleteDeliveryShouldThrowExceptionForCourierAssignedDelivery() {
+        delivery.setStatus(
+                DeliveryStatus.COURIER_ASSIGNED
+        );
+
+        when(deliveryRepository.findById(DELIVERY_ID))
+                .thenReturn(Optional.of(delivery));
+
+        assertThrows(
+                InvalidDeliveryStatusException.class,
+                () -> deliveryService.deleteDelivery(
+                        DELIVERY_ID
+                )
+        );
+
+        verify(deliveryRepository, never())
+                .delete(any());
+    }
+
+    @Test
+    void deleteDeliveryShouldThrowExceptionForPickedUpDelivery() {
+        delivery.setStatus(
+                DeliveryStatus.PICKED_UP
+        );
+
+        when(deliveryRepository.findById(DELIVERY_ID))
+                .thenReturn(Optional.of(delivery));
+
+        assertThrows(
+                InvalidDeliveryStatusException.class,
+                () -> deliveryService.deleteDelivery(
+                        DELIVERY_ID
+                )
+        );
+
+        verify(deliveryRepository, never())
+                .delete(any());
+    }
+
+    @Test
+    void deleteDeliveryShouldThrowDeliveryNotFoundException() {
+        when(deliveryRepository.findById(999L))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                DeliveryNotFoundException.class,
+                () -> deliveryService.deleteDelivery(
+                        999L
+                )
+        );
+
+        verify(deliveryRepository, never())
+                .delete(any());
     }
 }

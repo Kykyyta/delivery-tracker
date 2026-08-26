@@ -24,11 +24,13 @@ public class CourierEventConsumer {
     )
     public void handleCourierEvent(CourierEvent event) {
 
-        if (event.eventType() == CourierEventType.COURIER_ASSIGNED) {
+        if (event.eventType()
+                == CourierEventType.COURIER_ASSIGNED) {
 
             notificationService.createNotification(
                     event.eventId(),
                     event.deliveryId(),
+                    event.customerId(),
                     NotificationType.COURIER_ASSIGNED,
                     "К доставке #" + event.deliveryId()
                             + " назначен курьер #" + event.courierId()
